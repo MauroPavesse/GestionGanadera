@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "765161936056",
+    "project_id": "gestion-ganadera-91f88",
+    "storage_bucket": "gestion-ganadera-91f88.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:765161936056:android:ba7a7ef83fcbb1df53104d",
+        "android_client_info": {
+          "package_name": "com.pequesystems.gestionganadera"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANJVfWt7OJ5mCMpR08js84qFWYXFxTrjw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
