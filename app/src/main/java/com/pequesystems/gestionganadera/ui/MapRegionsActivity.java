@@ -1,10 +1,8 @@
 package com.pequesystems.gestionganadera.ui;
 
-import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
-import androidx.fragment.app.FragmentActivity;
-
 import android.Manifest;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -16,6 +14,10 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Spinner;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.fragment.app.FragmentActivity;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -36,6 +38,8 @@ import com.pequesystems.gestionganadera.models.Region;
 import java.util.ArrayList;
 import java.util.List;
 
+import yuku.ambilwarna.AmbilWarnaDialog;
+
 public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap googleMap;
@@ -49,6 +53,8 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
     private Spinner spinnerPolygons;
     private List<Region> regions = new ArrayList<>();
     private boolean isDrawingMode = false; // Nueva bandera para controlar el modo de dibujo
+    private Button colorButton;
+    private int currentColor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,9 +68,11 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
         mapRegions_button_save = findViewById(R.id.mapRegions_button_save);
         mapRegions_button_new = findViewById(R.id.mapRegions_button_new);
         mapRegions_button_delete = findViewById(R.id.mapRegions_button_delete);
+        colorButton = findViewById(R.id.mapRegions_button_color);
 
         mapRegions_editText_nameRegion.setEnabled(false);
         mapRegions_button_save.setEnabled(false);
+        colorButton.setEnabled(false);
 
         magRegions_imageButton_back.setOnClickListener(v -> {
             finish();
@@ -96,6 +104,7 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
                 polygonPoints.clear();
                 googleMap.clear();
                 mapRegions_button_new.setEnabled(true);
+                colorButton.setEnabled(false);
                 mapRegions_editText_nameRegion.setEnabled(false);
                 mapRegions_editText_nameRegion.setText("");
                 mapRegions_button_save.setEnabled(false);
@@ -106,6 +115,10 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
         });
 
         mapRegions_button_save.setOnClickListener(v -> {
+            if(mapRegions_editText_nameRegion.length() == 0){
+                Toast.makeText(this, "Debe asignarle un nombra a la zona", Toast.LENGTH_SHORT).show();
+                return;
+            }
             savePolygonToFirestore(mapRegions_editText_nameRegion.getText().toString());
         });
 
@@ -121,7 +134,35 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
             mapRegions_button_save.setEnabled(true);
             mapRegions_button_delete.setText("CANCELAR");
             isDrawingMode = true; // Activar el modo de dibujo
+            currentColor = Color.GREEN;
+            colorButton.setEnabled(true);
         });
+
+        colorButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openColorPickerDialog();
+            }
+        });
+    }
+
+    private void openColorPickerDialog() {
+        AmbilWarnaDialog colorPickerDialog = new AmbilWarnaDialog(this, currentColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
+            @Override
+            public void onOk(AmbilWarnaDialog dialog, int color) {
+                currentColor = color;
+                if(polygon != null){
+                    polygon.setStrokeColor(color);
+                    polygon.setFillColor(getFilteredColor(color));
+                }
+            }
+
+            @Override
+            public void onCancel(AmbilWarnaDialog dialog) {
+                // Acción al cancelar
+            }
+        });
+        colorPickerDialog.show();
     }
 
     @Override
@@ -162,11 +203,22 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
         if (polygonPoints.size() > 2) {
             PolygonOptions polygonOptions = new PolygonOptions()
                     .addAll(polygonPoints)
-                    .strokeColor(Color.RED)
-                    .fillColor(Color.argb(50, 255, 0, 0))
+                    .strokeColor(currentColor)
+                    .fillColor(getFilteredColor(currentColor))
                     .strokeWidth(5);
             polygon = googleMap.addPolygon(polygonOptions);
         }
+    }
+
+    private int getFilteredColor(int color){
+        // Extraer los componentes del color almacenado
+        int red = Color.red(color);
+        int green = Color.green(color);
+        int blue = Color.blue(color);
+
+        // Crear un nuevo color con la misma transparencia que el valor deseado
+        int newFillColor = Color.argb(50, red, green, blue);
+        return newFillColor;
     }
 
     @Override
@@ -223,8 +275,10 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
         }
 
         String regionId = db.collection("regions").document().getId(); // Generar un ID único
-        String usuarioId = "aa"; //TODO: Poner el ID del usuario
-        Region region = new Region(regionId, usuarioId, latLngPoints, nombre);
+        SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
+        String usuarioId = sharedPref.getString("user_id", "");
+
+        Region region = new Region(regionId, usuarioId, latLngPoints, nombre, currentColor);
 
         db.collection("regions").document(regionId)
                 .set(region)
@@ -240,6 +294,7 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Error al guardar el polígono", Toast.LENGTH_SHORT).show());
         mapRegions_button_new.setEnabled(true);
+        colorButton.setEnabled(false);
         mapRegions_editText_nameRegion.setEnabled(false);
         mapRegions_editText_nameRegion.setText("");
         mapRegions_button_save.setEnabled(false);
@@ -250,7 +305,11 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
     private void loadPolygonNames() {
         regions.clear();
         FirebaseFirestore db = FirebaseFirestore.getInstance();
+        SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
+        String usuarioId = sharedPref.getString("user_id", "");
+
         db.collection("regions")
+                .whereEqualTo("usuarioId", usuarioId)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -281,6 +340,7 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
                 });
     }
 
+
     private void showPolygonOnMap(Region region) {
         if (googleMap != null) {
             googleMap.clear();
@@ -293,8 +353,8 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
             }
             PolygonOptions polygonOptions = new PolygonOptions()
                     .addAll(latLngs)
-                    .strokeColor(Color.RED)
-                    .fillColor(Color.argb(50, 255, 0, 0))
+                    .strokeColor(region.getColor())
+                    .fillColor(getFilteredColor(region.getColor())) //Color.argb(50, 255, 0, 0))
                     .strokeWidth(5);
             googleMap.addPolygon(polygonOptions);
 

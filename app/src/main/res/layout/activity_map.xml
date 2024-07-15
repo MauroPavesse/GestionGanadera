@@ -13,7 +13,8 @@
         android:layout_marginTop="32dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        android:contentDescription="Google map" />
 
     <Button
         android:id="@+id/map_button_back"
@@ -24,4 +25,21 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <com.google.android.material.chip.Chip
+        android:id="@+id/map_chip_viewRegions"
+        android:layout_width="136dp"
+        android:layout_height="49dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="4dp"
+        android:text="Ver Regiones"
+        app:chipBackgroundColor="@color/blue_light"
+        app:chipCornerRadius="8dp"
+        app:chipStrokeColor="@color/dark_green"
+        app:chipStrokeWidth="2dp"
+        app:closeIconTint="@color/white"
+        app:closeIconVisible="true"
+        app:iconTint="@color/white"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/map_mapView_map" />
 </androidx.constraintlayout.widget.ConstraintLayout>

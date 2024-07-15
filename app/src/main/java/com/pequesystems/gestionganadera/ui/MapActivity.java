@@ -1,9 +1,19 @@
 package com.pequesystems.gestionganadera.ui;
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -16,8 +26,17 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolygonOptions;
+import com.google.android.material.chip.Chip;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.pequesystems.gestionganadera.R;
+import com.pequesystems.gestionganadera.models.Region;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MapActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -25,6 +44,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     private FusedLocationProviderClient fusedLocationClient;
     MapView map_mapView_map;
     Button map_button_back;
+    Chip map_chip_viewRegions;
+    private boolean isShowRegions = false;
+    private List<Region> regions = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +55,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
 
         map_mapView_map = findViewById(R.id.map_mapView_map);
         map_button_back = findViewById(R.id.map_button_back);
+        map_chip_viewRegions = findViewById(R.id.map_chip_viewRegions);
 
         map_button_back.setOnClickListener(v -> {
             finish();
@@ -41,11 +64,101 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         map_mapView_map.onCreate(savedInstanceState);
         map_mapView_map.getMapAsync(this);
 
+        loadRegions();
+
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        map_chip_viewRegions.setOnClickListener(v -> {
+            ObjectAnimator animator = ObjectAnimator.ofFloat(v, "scaleX", 1f, 1.1f);
+            animator.setDuration(150);
+            animator.setRepeatCount(1);
+            animator.setRepeatMode(ValueAnimator.REVERSE);
+            animator.start();
+            isShowRegions = !isShowRegions;
+            if(isShowRegions){
+                showRegions();
+            }else{
+                hideRegions();
+            }
+        });
+    }
+
+    private void loadRegions(){
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
+        String usuarioId = sharedPref.getString("user_id", "");
+
+        db.collection("regions")
+                .whereEqualTo("usuarioId", usuarioId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Region region = document.toObject(Region.class);
+                            regions.add(region);
+                        }
+                    } else {
+                        Toast.makeText(this, "Error al cargar los polígonos", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void showRegions(){
+        if (googleMap != null) {
+            googleMap.clear();
+            for (int i = 0; i < regions.size(); i++) {
+                showPolygonOnMap(regions.get(i));
+            }
+            Toast.makeText(this, "Mostrando regiones", Toast.LENGTH_SHORT).show();
+            map_chip_viewRegions.setText("Ocultar Regiones");
+            map_chip_viewRegions.setChipBackgroundColor(ColorStateList.valueOf(Color.RED));
+        }
+    }
+
+    private int getFilteredColor(int color){
+        // Extraer los componentes del color almacenado
+        int red = Color.red(color);
+        int green = Color.green(color);
+        int blue = Color.blue(color);
+
+        // Crear un nuevo color con la misma transparencia que el valor deseado
+        int newFillColor = Color.argb(50, red, green, blue);
+        return newFillColor;
+    }
+
+    private void showPolygonOnMap(Region region) {
+        List<LatLng> latLngs = new ArrayList<>();
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        for (Region.LatLngPoint point : region.getPoints()) {
+            LatLng latLng = new LatLng(point.getLatitude(), point.getLongitude());
+            latLngs.add(latLng);
+            builder.include(latLng);
+        }
+        PolygonOptions polygonOptions = new PolygonOptions()
+                .addAll(latLngs)
+                .strokeColor(region.getColor())
+                .fillColor(getFilteredColor(region.getColor())) //Color.argb(50, 255, 0, 0))
+                .strokeWidth(5);
+        googleMap.addPolygon(polygonOptions);
+
+        if (!latLngs.isEmpty()) {
+            LatLngBounds bounds = builder.build();
+            googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 50)); // Padding de 50 px
+        }
+    }
+
+    private void hideRegions(){
+        if (googleMap != null) {
+            Toast.makeText(this, "Ocultando regiones", Toast.LENGTH_SHORT).show();
+            googleMap.clear();
+            map_chip_viewRegions.setText("Ver Regiones");
+            map_chip_viewRegions.setChipBackgroundColor(ColorStateList.valueOf(Color.GREEN));
+        }
     }
 
     @Override
     public void onMapReady(GoogleMap map) {
+
         googleMap = map;
         googleMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
 
