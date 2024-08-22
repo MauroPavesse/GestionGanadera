@@ -17,7 +17,6 @@ import com.google.firebase.firestore.QuerySnapshot;
 import com.pequesystems.gestionganadera.R;
 import com.pequesystems.gestionganadera.adapters.AnimalAdapter;
 import com.pequesystems.gestionganadera.models.Animal;
-import com.pequesystems.gestionganadera.models.TypeAnimal;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -85,11 +84,12 @@ public class AnimalsActivity extends AppCompatActivity {
                                             String name = document.getString("name");
                                             String typeId = document.getString("typeId");
                                             String sex = document.getString("sex");
+                                            String deviceId = document.getString("deviceId");
 
                                             // Desnormalizar el tipo de animal
                                             String type = tiposMap.get(typeId);
 
-                                            dataList.add(new Animal(id, name, typeId, type, sex));
+                                            dataList.add(new Animal(id, name, typeId, type, sex, deviceId));
                                         }
                                         adapter.notifyDataSetChanged();
                                     }

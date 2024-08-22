@@ -23,7 +23,7 @@ import java.util.Map;
 public class AnimalEditActivity extends AppCompatActivity {
 
     private Spinner animalEdit_spinner_types;
-    private EditText animalEdit_editText_name, animalEdit_editText_sex;
+    private EditText animalEdit_editText_name, animalEdit_editText_sex, animalEdit_editText_deviceId;
     private Button animalEdit_button_save, animalEdit_button_back;
     private FirebaseFirestore db;
     private String id;
@@ -40,6 +40,7 @@ public class AnimalEditActivity extends AppCompatActivity {
         animalEdit_editText_name = findViewById(R.id.animalEdit_editText_name);
         animalEdit_editText_sex = findViewById(R.id.animalEdit_editText_sex);
         animalEdit_spinner_types = findViewById(R.id.animalEdit_spinner_types);
+        animalEdit_editText_deviceId = findViewById(R.id.animalEdit_editText_deviceId);
         animalEdit_button_save = findViewById(R.id.animalEdit_button_save);
         animalEdit_button_back = findViewById(R.id.animalEdit_button_back);
         db = FirebaseFirestore.getInstance();
@@ -65,6 +66,7 @@ public class AnimalEditActivity extends AppCompatActivity {
             String typeName = animalEdit_spinner_types.getSelectedItem().toString();
             String typeId = getTypeIdFromName(typeName);
             String sex = animalEdit_editText_sex.getText().toString();
+            String deviceId = animalEdit_editText_deviceId.getText().toString();
 
             if (typeId == null) {
                 Toast.makeText(this, "Tipo de animal inválido", Toast.LENGTH_SHORT).show();
@@ -72,9 +74,9 @@ public class AnimalEditActivity extends AppCompatActivity {
             }
 
             if (isEditMode) {
-                updateAnimal(id, name, typeId, typeName, sex);
+                updateAnimal(id, name, typeId, typeName, sex, deviceId);
             } else {
-                addAnimal(name, typeId, sex);
+                addAnimal(name, typeId, sex, deviceId);
             }
             Toast.makeText(this, isEditMode ? "Datos actualizados" : "Datos agregados", Toast.LENGTH_SHORT).show();
             finish();
@@ -123,13 +125,13 @@ public class AnimalEditActivity extends AppCompatActivity {
         return null;
     }
 
-    private void updateAnimal(String id, String name, String typeId, String type, String sex) {
+    private void updateAnimal(String id, String name, String typeId, String type, String sex, String deviceId) {
         db.collection("animals").document(id)
-                .update("name", name, "typeId", typeId, "type", typeMap.get(typeId), "sex", sex);
+                .update("name", name, "typeId", typeId, "type", typeMap.get(typeId), "sex", sex, "deviceId", deviceId);
     }
 
-    private void addAnimal(String name, String typeId, String sex) {
-        Animal newAnimal = new Animal(name, typeId, typeMap.get(typeId), sex);
+    private void addAnimal(String name, String typeId, String sex, String deviceId) {
+        Animal newAnimal = new Animal(name, typeId, typeMap.get(typeId), sex, deviceId);
         db.collection("animals").add(newAnimal).addOnSuccessListener(documentReference -> {
             String id = documentReference.getId();
             newAnimal.setId(id);

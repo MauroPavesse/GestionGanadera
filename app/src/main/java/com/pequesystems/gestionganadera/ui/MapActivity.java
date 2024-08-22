@@ -33,10 +33,14 @@ import com.google.android.material.chip.Chip;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.pequesystems.gestionganadera.R;
+import com.pequesystems.gestionganadera.models.Animal;
+import com.pequesystems.gestionganadera.models.AnimalLocation;
+import com.pequesystems.gestionganadera.models.LatLngPoint;
 import com.pequesystems.gestionganadera.models.Region;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MapActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -47,6 +51,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     Chip map_chip_viewRegions;
     private boolean isShowRegions = false;
     private List<Region> regions = new ArrayList<>();
+    private List<AnimalLocation> animalLocations = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +70,8 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         map_mapView_map.getMapAsync(this);
 
         loadRegions();
+        loadAnimalsLocations();
+        showAnimals();
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -81,6 +88,76 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
                 hideRegions();
             }
         });
+    }
+
+    /*
+    private void loadAnimals(){
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
+        String usuarioId = sharedPref.getString("user_id", "");
+
+        db.collection("animals")
+                .whereEqualTo("usuarioId", usuarioId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Animal animal = document.toObject(Animal.class);
+                            animals.add(animal);
+                        }
+                    } else {
+                        Toast.makeText(this, "Error al cargar los animales", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+    */
+
+    private void loadAnimalsLocations(){
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
+        String usuarioId = sharedPref.getString("user_id", "");
+
+        db.collection("animals")
+                .whereEqualTo("usuarioId", usuarioId) // Reemplaza con el userId correspondiente
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        List<Animal> animals = new ArrayList<>();
+                        List<AnimalLocation> animalLocationsAux = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Animal animal = document.toObject(Animal.class);
+                            animals.add(animal);
+                        }
+
+                        // Paso 2: Obtener las locaciones para cada animal
+                        if (animals.stream().anyMatch(obj -> obj.getDeviceId() != null && obj.getDeviceId().length() > 0)) {
+                            List<String> deviceIds = animals.stream()
+                                    .map(Animal::getDeviceId)
+                                    .filter(deviceId -> deviceId != null && deviceId.length() > 0)
+                                    .collect(Collectors.toList());
+                            db.collection("animalsLocations")
+                                    .whereIn("Id", deviceIds)
+                                    .get()
+                                    .addOnCompleteListener(locationTask -> {
+                                        if (locationTask.isSuccessful()) {
+                                            for (QueryDocumentSnapshot locationDocument : locationTask.getResult()) {
+                                                AnimalLocation animalLocation = locationDocument.toObject(AnimalLocation.class);
+                                                Animal animalAux = animals.stream()
+                                                        .filter(deviceId -> deviceId != null && deviceId.equals(animalLocation.getId())) // Filtra nombres que coincidan con "Alice"
+                                                        .findFirst() // Encuentra el primer elemento que coincida
+                                                        .orElse(null); // Devuelve null si no hay coincidencias
+                                                animalLocation.setAnimal(animalAux);
+                                                animalLocations.add(animalLocation);
+                                            }
+                                        } else {
+                                            Toast.makeText(this, "Error al cargar las ubicaciones de los animales", Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+                        }
+                    } else {
+                        Toast.makeText(this, "Error al cargar los animales", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     private void loadRegions(){
@@ -101,6 +178,17 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
                         Toast.makeText(this, "Error al cargar los polígonos", Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    private void showAnimals(){
+        if (googleMap != null) {
+            for (int i = 0; i < animalLocations.size(); i++) {
+                MarkerOptions marcador = new MarkerOptions();
+                LatLngPoint point = animalLocations.get(i).getPoint();
+                marcador.position(new LatLng(point.getLatitude(), point.getLongitude()));
+                googleMap.addMarker(marcador);
+            }
+        }
     }
 
     private void showRegions(){
@@ -129,7 +217,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     private void showPolygonOnMap(Region region) {
         List<LatLng> latLngs = new ArrayList<>();
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
-        for (Region.LatLngPoint point : region.getPoints()) {
+        for (LatLngPoint point : region.getPoints()) {
             LatLng latLng = new LatLng(point.getLatitude(), point.getLongitude());
             latLngs.add(latLng);
             builder.include(latLng);

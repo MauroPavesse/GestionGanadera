@@ -33,6 +33,7 @@ import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.pequesystems.gestionganadera.R;
+import com.pequesystems.gestionganadera.models.LatLngPoint;
 import com.pequesystems.gestionganadera.models.Region;
 
 import java.util.ArrayList;
@@ -266,12 +267,12 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
 
     private void savePolygonToFirestore(String nombre) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        List<Region.LatLngPoint> latLngPoints = new ArrayList<>();
+        List<LatLngPoint> latLngPoints = new ArrayList<>();
         if(polygonPoints.size() <= 2){
             Toast.makeText(this, "Debe marcar puntos en el mapa hasta crear un polígono", Toast.LENGTH_SHORT).show();
         }
         for (LatLng latLng : polygonPoints) {
-            latLngPoints.add(new Region.LatLngPoint(latLng.latitude, latLng.longitude));
+            latLngPoints.add(new LatLngPoint(latLng.latitude, latLng.longitude));
         }
 
         String regionId = db.collection("regions").document().getId(); // Generar un ID único
@@ -346,7 +347,7 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
             googleMap.clear();
             List<LatLng> latLngs = new ArrayList<>();
             LatLngBounds.Builder builder = new LatLngBounds.Builder();
-            for (Region.LatLngPoint point : region.getPoints()) {
+            for (LatLngPoint point : region.getPoints()) {
                 LatLng latLng = new LatLng(point.getLatitude(), point.getLongitude());
                 latLngs.add(latLng);
                 builder.include(latLng);

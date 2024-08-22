@@ -6,20 +6,23 @@ public class Animal {
     private String typeId;
     private String type;
     private String sex;
+    private String deviceId;
 
-    public Animal(String id, String name, String typeId, String type, String sex) {
+    public Animal(String id, String name, String typeId, String type, String sex, String deviceId) {
         this.id = id;
         this.name = name;
         this.typeId = typeId;
         this.type = type;
         this.sex = sex;
+        this.deviceId = deviceId;
     }
 
-    public Animal(String name, String typeId, String type, String sex) {
+    public Animal(String name, String typeId, String type, String sex, String deviceId) {
         this.name = name;
         this.typeId = typeId;
         this.type = type;
         this.sex = sex;
+        this.deviceId = deviceId;
     }
 
     public String getId() {
@@ -45,4 +48,6 @@ public class Animal {
     public String getSex() {
         return sex;
     }
+
+    public String getDeviceId() { return deviceId; }
 }

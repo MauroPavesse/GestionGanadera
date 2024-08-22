@@ -57,6 +57,7 @@ public class Region {
         this.color = color;
     }
 
+    /*
     public static class LatLngPoint {
         private double latitude;
         private double longitude;
@@ -85,5 +86,5 @@ public class Region {
         public void setLongitude(double longitude) {
             this.longitude = longitude;
         }
-    }
+    }*/
 }
