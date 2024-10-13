@@ -9,10 +9,7 @@ import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -47,7 +44,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     private GoogleMap googleMap;
     private FusedLocationProviderClient fusedLocationClient;
     MapView map_mapView_map;
-    Button map_button_back;
+    ImageButton map_button_back;
     Chip map_chip_viewRegions;
     private boolean isShowRegions = false;
     private List<Region> regions = new ArrayList<>();
@@ -59,7 +56,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         setContentView(R.layout.activity_map);
 
         map_mapView_map = findViewById(R.id.map_mapView_map);
-        map_button_back = findViewById(R.id.map_button_back);
+        map_button_back = findViewById(R.id.map_imageButton_back);
         map_chip_viewRegions = findViewById(R.id.map_chip_viewRegions);
 
         map_button_back.setOnClickListener(v -> {

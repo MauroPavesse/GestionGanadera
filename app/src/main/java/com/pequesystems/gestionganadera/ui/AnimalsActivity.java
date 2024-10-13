@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.ImageButton;
 
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -29,14 +30,15 @@ public class AnimalsActivity extends AppCompatActivity {
     private AnimalAdapter adapter;
     private List<Animal> dataList;
     private FirebaseFirestore db;
-    private Button btnAdd, animals_button_back;
+    private Button btnAdd;
+    private ImageButton animals_button_back;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_animals);
 
-        animals_button_back = findViewById(R.id.animals_button_back);
+        animals_button_back = findViewById(R.id.animals_imageButton_back);
         recyclerView = findViewById(R.id.animals_recyclerView_itemsAnimals);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         dataList = new ArrayList<>();
@@ -85,11 +87,12 @@ public class AnimalsActivity extends AppCompatActivity {
                                             String typeId = document.getString("typeId");
                                             String sex = document.getString("sex");
                                             String deviceId = document.getString("deviceId");
+                                            String birthdate = document.getString("birthdate");
 
                                             // Desnormalizar el tipo de animal
                                             String type = tiposMap.get(typeId);
 
-                                            dataList.add(new Animal(id, name, typeId, type, sex, deviceId));
+                                            dataList.add(new Animal(id, name, typeId, type, sex, deviceId, birthdate));
                                         }
                                         adapter.notifyDataSetChanged();
                                     }

@@ -45,6 +45,8 @@ public class AnimalAdapter extends RecyclerView.Adapter<AnimalAdapter.ViewHolder
             intent.putExtra("TypeId", data.getTypeId());
             intent.putExtra("Type", data.getType());
             intent.putExtra("Sex", data.getSex());
+            intent.putExtra("DeviceId", data.getDeviceId());
+            intent.putExtra("Birthdate", data.getBirthdate());
             intent.putExtra("isEditMode", true);
             context.startActivity(intent);
         });

@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="@drawable/rounded_background"
+    android:elevation="4dp"
+    android:layout_marginTop="3dp"
+    android:layout_marginLeft="10dp"
+    android:layout_marginRight="10dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -15,7 +21,8 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_marginRight="5dp"
-            android:text="Nombre:" />
+            android:text="Nombre:"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/itemAnimal_textView_name"
@@ -35,7 +42,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginRight="5dp"
-            android:text="Tipo:" />
+            android:text="Tipo:"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/itemAnimal_textView_type"
@@ -48,7 +56,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginRight="5dp"
-            android:text="Sexo:" />
+            android:text="Sexo:"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/itemAnimal_textView_sex"
