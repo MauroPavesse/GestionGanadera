@@ -5,10 +5,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,6 +39,8 @@ public class AuthActivity extends AppCompatActivity {
             auth_button_register;
     TextView auth_textView_forgotPassword;
 
+    ImageButton auth_imagenButton_togglePasswordButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,6 +53,23 @@ public class AuthActivity extends AppCompatActivity {
         auth_button_login = findViewById(R.id.auth_button_login);
         auth_button_register = findViewById(R.id.auth_button_register);
         auth_textView_forgotPassword = findViewById(R.id.auth_textView_forgotPassword);
+        auth_imagenButton_togglePasswordButton = findViewById(R.id.auth_imagenButton_togglePassword);
+
+        final boolean[] isPasswordVisible = {false};
+
+        auth_imagenButton_togglePasswordButton.setOnClickListener(v -> {
+            if (isPasswordVisible[0]) {
+                // Ocultar contraseña
+                auth_editText_password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                auth_imagenButton_togglePasswordButton.setImageResource(R.drawable.ic_action_visibility_off);
+            } else {
+                // Mostrar contraseña
+                auth_editText_password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                auth_imagenButton_togglePasswordButton.setImageResource(R.drawable.ic_action_visibility);
+            }
+            isPasswordVisible[0] = !isPasswordVisible[0];
+            auth_editText_password.setSelection(auth_editText_password.getText().length());
+        });
 
         auth_button_register.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -148,7 +169,7 @@ public class AuthActivity extends AppCompatActivity {
         submitButton.setOnClickListener(v -> {
             String email = emailEditText.getText().toString().trim();
             if (email.isEmpty()) {
-                Toast.makeText(AuthActivity.this, "Por favor, ingresa un correo electrónico", Toast.LENGTH_SHORT).show();
+                Toast.makeText(AuthActivity.this, "Por favor, ingrese un correo electrónico", Toast.LENGTH_SHORT).show();
             } else {
                 // Aquí puedes implementar la lógica para enviar el correo de recuperación de contraseña
                 sendPasswordResetEmail(email);
@@ -167,9 +188,10 @@ public class AuthActivity extends AppCompatActivity {
         auth.fetchSignInMethodsForEmail(email)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
+
                         // Obtener los métodos de inicio de sesión asociados con el email
                         List<String> signInMethods = task.getResult().getSignInMethods();
-
+                        Toast.makeText(AuthActivity.this, "ESTo: " + task, Toast.LENGTH_LONG).show();
                         if (signInMethods != null && !signInMethods.isEmpty()) {
                             // El email está registrado, proceder con el envío de la recuperación
                             auth.sendPasswordResetEmail(email)

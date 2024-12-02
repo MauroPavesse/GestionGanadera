@@ -9,19 +9,21 @@
     tools:context=".ui.AuthActivity">
 
     <!-- Email -->
+
+    <!-- Contraseña -->
+
     <EditText
         android:id="@+id/auth_editText_email"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="100dp"
+        android:layout_marginTop="60dp"
         android:hint="Email"
         android:inputType="textEmailAddress"
         android:padding="12dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/imageView" />
 
-    <!-- Contraseña -->
     <EditText
         android:id="@+id/auth_editText_password"
         android:layout_width="match_parent"
@@ -30,16 +32,29 @@
         android:hint="Contraseña"
         android:inputType="textPassword"
         android:padding="12dp"
+        android:paddingEnd="48dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/auth_editText_email" />
 
     <!-- Botón Acceder -->
+    <ImageButton
+        android:id="@+id/auth_imagenButton_togglePassword"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_action_visibility_off"
+        app:layout_constraintBottom_toBottomOf="@+id/auth_editText_password"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/auth_editText_password" />
+
     <Button
         android:id="@+id/auth_button_login"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
+        android:paddingEnd="48dp"
         android:text="Acceder"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -70,5 +85,15 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/auth_button_register" />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="175dp"
+        android:layout_height="164dp"
+        android:layout_marginTop="36dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@mipmap/ic_launcher" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
