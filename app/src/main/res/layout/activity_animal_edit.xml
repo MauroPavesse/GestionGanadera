@@ -9,7 +9,7 @@
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/materialToolbar"
         android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_height="50dp"
         android:background="?attr/colorPrimary"
         android:minHeight="?attr/actionBarSize"
         android:theme="?attr/actionBarTheme"
@@ -19,9 +19,9 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageButton
-        android:id="@+id/animalEdit_imageButton_back"
-        android:layout_width="24dp"
-        android:layout_height="26dp"
+        android:id="@+id/animals_imageButton_back"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:background="#00FFFFFF"
@@ -31,11 +31,12 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/animalEdit_textView_tittle"
+        android:id="@+id/animals_textView_tittle"
         android:layout_width="237dp"
         android:layout_height="22dp"
-        android:text="Datos del animal"
+        android:text="Agregar/editar animal"
         android:textAlignment="center"
+        android:textColor="#FFFFFF"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="@+id/materialToolbar"
         app:layout_constraintEnd_toEndOf="@+id/materialToolbar"

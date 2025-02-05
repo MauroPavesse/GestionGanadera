@@ -49,6 +49,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     private boolean isShowRegions = false;
     private List<Region> regions = new ArrayList<>();
     private List<AnimalLocation> animalLocations = new ArrayList<>();
+    FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,8 +67,11 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         map_mapView_map.onCreate(savedInstanceState);
         map_mapView_map.getMapAsync(this);
 
-        loadRegions();
-        loadAnimalsLocations();
+        SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
+        String userId = sharedPref.getString("user_id", "");
+
+        loadRegions(userId);
+        loadAnimalsLocations(userId);
         showAnimals();
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -109,72 +113,81 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     }
     */
 
-    private void loadAnimalsLocations(){
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
-        String usuarioId = sharedPref.getString("user_id", "");
+    private void loadAnimalsLocations(String userId){
+        try{
+            db.collection("animals")
+                    .whereEqualTo("userId", userId) // Reemplaza con el userId correspondiente
+                    .get()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            List<Animal> animals = new ArrayList<>();
+                            if (task.getResult() != null) {
+                                for (QueryDocumentSnapshot document : task.getResult()) {
+                                    Animal animal = document.toObject(Animal.class);
+                                    animals.add(animal);
+                                }
+                            }
 
-        db.collection("animals")
-                .whereEqualTo("usuarioId", usuarioId) // Reemplaza con el userId correspondiente
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        List<Animal> animals = new ArrayList<>();
-                        List<AnimalLocation> animalLocationsAux = new ArrayList<>();
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            Animal animal = document.toObject(Animal.class);
-                            animals.add(animal);
-                        }
-
-                        // Paso 2: Obtener las locaciones para cada animal
-                        if (animals.stream().anyMatch(obj -> obj.getDeviceId() != null && obj.getDeviceId().length() > 0)) {
-                            List<String> deviceIds = animals.stream()
-                                    .map(Animal::getDeviceId)
-                                    .filter(deviceId -> deviceId != null && deviceId.length() > 0)
-                                    .collect(Collectors.toList());
-                            db.collection("animalsLocations")
-                                    .whereIn("Id", deviceIds)
-                                    .get()
-                                    .addOnCompleteListener(locationTask -> {
-                                        if (locationTask.isSuccessful()) {
-                                            for (QueryDocumentSnapshot locationDocument : locationTask.getResult()) {
-                                                AnimalLocation animalLocation = locationDocument.toObject(AnimalLocation.class);
-                                                Animal animalAux = animals.stream()
-                                                        .filter(deviceId -> deviceId != null && deviceId.equals(animalLocation.getId())) // Filtra nombres que coincidan con "Alice"
-                                                        .findFirst() // Encuentra el primer elemento que coincida
-                                                        .orElse(null); // Devuelve null si no hay coincidencias
-                                                animalLocation.setAnimal(animalAux);
-                                                animalLocations.add(animalLocation);
+                            // Paso 2: Obtener las locaciones para cada animal
+                            if (animals.stream().anyMatch(obj -> obj.getDeviceId() != null && obj.getDeviceId().length() > 0)) {
+                                List<String> deviceIds = animals.stream()
+                                        .map(Animal::getDeviceId)
+                                        .filter(deviceId -> deviceId != null && !deviceId.isEmpty())
+                                        .distinct()
+                                        .collect(Collectors.toList());
+                                /*List<String> deviceIds = animals.stream()
+                                        .map(Animal::getDeviceId)
+                                        .filter(deviceId -> deviceId != null && deviceId.length() > 0)
+                                        .collect(Collectors.toList());*/
+                                db.collection("animalsLocations")
+                                        .whereIn("Id", deviceIds)
+                                        .get()
+                                        .addOnCompleteListener(locationTask -> {
+                                            if (locationTask.isSuccessful()) {
+                                                for (QueryDocumentSnapshot locationDocument : locationTask.getResult()) {
+                                                    AnimalLocation animalLocation = locationDocument.toObject(AnimalLocation.class);
+                                                    Animal animalAux = animals.stream()
+                                                            .filter(animal -> animal.getDeviceId() != null && animal.getDeviceId().equals(animalLocation.getId()))
+                                                            //.filter(deviceId -> deviceId != null && deviceId.equals(animalLocation.getId()))
+                                                            .findFirst() // Encuentra el primer elemento que coincida
+                                                            .orElse(null); // Devuelve null si no hay coincidencias
+                                                    animalLocation.setAnimal(animalAux);
+                                                    animalLocations.add(animalLocation);
+                                                }
+                                            } else {
+                                                Toast.makeText(this, "Error al cargar las ubicaciones de los animales", Toast.LENGTH_SHORT).show();
                                             }
-                                        } else {
-                                            Toast.makeText(this, "Error al cargar las ubicaciones de los animales", Toast.LENGTH_SHORT).show();
-                                        }
-                                    });
+                                        });
+                            }
+                        } else {
+                            Toast.makeText(this, "Error al cargar los animales", Toast.LENGTH_SHORT).show();
                         }
-                    } else {
-                        Toast.makeText(this, "Error al cargar los animales", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                    });
+        }
+        catch (Exception ex){
+            Toast.makeText(this, ex.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
-    private void loadRegions(){
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
-        String usuarioId = sharedPref.getString("user_id", "");
-
-        db.collection("regions")
-                .whereEqualTo("usuarioId", usuarioId)
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            Region region = document.toObject(Region.class);
-                            regions.add(region);
+    private void loadRegions(String userId){
+        try{
+            db.collection("regions")
+                    .whereEqualTo("usuarioId", userId)
+                    .get()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                Region region = document.toObject(Region.class);
+                                regions.add(region);
+                            }
+                        } else {
+                            Toast.makeText(this, "Error al cargar los polígonos", Toast.LENGTH_SHORT).show();
                         }
-                    } else {
-                        Toast.makeText(this, "Error al cargar los polígonos", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                    });
+        }
+        catch (Exception ex){
+            Toast.makeText(this, ex.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showAnimals(){

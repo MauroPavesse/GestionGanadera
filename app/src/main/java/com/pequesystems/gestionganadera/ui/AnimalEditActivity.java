@@ -6,7 +6,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
@@ -55,7 +57,7 @@ public class AnimalEditActivity extends AppCompatActivity {
         animalEdit_spinner_types = findViewById(R.id.animalEdit_spinner_types);
         animalEdit_editText_deviceId = findViewById(R.id.animalEdit_editText_deviceId);
         animalEdit_button_save = findViewById(R.id.animalEdit_button_save);
-        animalEdit_button_back = findViewById(R.id.animalEdit_imageButton_back);
+        animalEdit_button_back = findViewById(R.id.animals_imageButton_back);
         animalEdit_imageButon_qr = findViewById(R.id.animalEdit_imageButton_qr);
         animalEdit_spinner_sex = findViewById(R.id.animalEdit_spinner_sex);
         animalEdit_editTextDate_birthdate = findViewById(R.id.animalEdit_editTextDate_birthdate);
@@ -68,6 +70,8 @@ public class AnimalEditActivity extends AppCompatActivity {
         spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, typeNames);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         animalEdit_spinner_types.setAdapter(spinnerAdapter);
+
+        SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
 
         ArrayList<String> itemsSex = new ArrayList<>();
         itemsSex.add("Macho");
@@ -103,6 +107,7 @@ public class AnimalEditActivity extends AppCompatActivity {
             String sex = animalEdit_spinner_sex.getSelectedItem().toString(); //animalEdit_editText_sex.getText().toString();
             String deviceId = animalEdit_editText_deviceId.getText().toString();
             String birthdate = animalEdit_editTextDate_birthdate.getText().toString();
+            String userId = sharedPref.getString("user_id", "");
 
             if (typeId == null) {
                 Toast.makeText(this, "Tipo de animal inválido", Toast.LENGTH_SHORT).show();
@@ -112,7 +117,7 @@ public class AnimalEditActivity extends AppCompatActivity {
             if (isEditMode) {
                 updateAnimal(id, name, typeId, typeName, sex, deviceId, birthdate);
             } else {
-                addAnimal(name, typeId, sex, deviceId, birthdate);
+                addAnimal(name, typeId, sex, deviceId, birthdate, userId);
             }
             Toast.makeText(this, isEditMode ? "Datos actualizados" : "Datos agregados", Toast.LENGTH_SHORT).show();
             finish();
@@ -251,8 +256,8 @@ public class AnimalEditActivity extends AppCompatActivity {
                 .update("name", name, "typeId", typeId, "type", typeMap.get(typeId), "sex", sex, "deviceId", deviceId, "birthdate", birthdate);
     }
 
-    private void addAnimal(String name, String typeId, String sex, String deviceId, String birthdate) {
-        Animal newAnimal = new Animal(name, typeId, typeMap.get(typeId), sex, deviceId, birthdate, birthdate);
+    private void addAnimal(String name, String typeId, String sex, String deviceId, String birthdate, String userId) {
+        Animal newAnimal = new Animal(name, typeId, typeMap.get(typeId), sex, deviceId, birthdate, userId);
         db.collection("animals").add(newAnimal).addOnSuccessListener(documentReference -> {
             String id = documentReference.getId();
             newAnimal.setId(id);

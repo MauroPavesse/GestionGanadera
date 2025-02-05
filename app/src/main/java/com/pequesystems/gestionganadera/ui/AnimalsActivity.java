@@ -5,7 +5,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -71,8 +73,12 @@ public class AnimalsActivity extends AppCompatActivity {
                             tiposMap.put(id, type);
                         }
 
+                        SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
+                        String userId = sharedPref.getString("user_id", "");
+
                         // Luego cargar los animales
                         db.collection("animals")
+                            .whereEqualTo("userId", userId)
                                 .addSnapshotListener(new EventListener<QuerySnapshot>() {
                                     @Override
                                     public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
@@ -88,11 +94,12 @@ public class AnimalsActivity extends AppCompatActivity {
                                             String sex = document.getString("sex");
                                             String deviceId = document.getString("deviceId");
                                             String birthdate = document.getString("birthdate");
+                                            String userId = document.getString("userId");
 
                                             // Desnormalizar el tipo de animal
                                             String type = tiposMap.get(typeId);
 
-                                            dataList.add(new Animal(id, name, typeId, type, sex, deviceId, birthdate));
+                                            dataList.add(new Animal(id, name, typeId, type, sex, deviceId, birthdate, userId));
                                         }
                                         adapter.notifyDataSetChanged();
                                     }
