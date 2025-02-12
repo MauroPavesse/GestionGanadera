@@ -277,9 +277,9 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
 
         String regionId = db.collection("regions").document().getId(); // Generar un ID único
         SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
-        String usuarioId = sharedPref.getString("user_id", "");
+        String userId = sharedPref.getString("user_id", "");
 
-        Region region = new Region(regionId, usuarioId, latLngPoints, nombre, currentColor);
+        Region region = new Region(regionId, userId, latLngPoints, nombre, currentColor);
 
         db.collection("regions").document(regionId)
                 .set(region)
@@ -307,10 +307,10 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
         regions.clear();
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
-        String usuarioId = sharedPref.getString("user_id", "");
+        String userId = sharedPref.getString("user_id", "");
 
         db.collection("regions")
-                .whereEqualTo("usuarioId", usuarioId)
+                .whereEqualTo("userId", userId)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -318,7 +318,7 @@ public class MapRegionsActivity extends FragmentActivity implements OnMapReadyCa
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             Region region = document.toObject(Region.class);
                             regions.add(region);
-                            nombres.add(region.getNombre());
+                            nombres.add(region.getName());
                         }
                         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, nombres);
                         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);

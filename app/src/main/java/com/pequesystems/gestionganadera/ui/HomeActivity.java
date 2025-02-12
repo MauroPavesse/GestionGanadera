@@ -3,6 +3,7 @@ package com.pequesystems.gestionganadera.ui;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.media.Image;
 import android.os.Bundle;
 import android.view.View;
@@ -15,7 +16,7 @@ import com.pequesystems.gestionganadera.R;
 public class HomeActivity extends AppCompatActivity {
 
     Button home_button_logout;
-    ImageButton home_imageButton_animals, home_imageButton_map, home_imageButton_mapRegions;
+    ImageButton home_imageButton_animals, home_imageButton_map, home_imageButton_mapRegions, home_imageButton_config;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +29,7 @@ public class HomeActivity extends AppCompatActivity {
         home_imageButton_animals = findViewById(R.id.home_imageButton_animals);
         home_imageButton_map = findViewById(R.id.home_imageButton_map);
         home_imageButton_mapRegions = findViewById(R.id.home_imageButton_mapRegions);
+        home_imageButton_config = findViewById(R.id.home_imageButton_config);
 
         home_button_logout.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -51,6 +53,10 @@ public class HomeActivity extends AppCompatActivity {
         home_imageButton_mapRegions.setOnClickListener(v -> {
             showMapRegions();
         });
+
+        home_imageButton_config.setOnClickListener(v -> {
+            showConfig();
+        });
     }
 
     private void showAuth(){
@@ -71,6 +77,11 @@ public class HomeActivity extends AppCompatActivity {
 
     private void showMapRegions(){
         Intent intent = new Intent(HomeActivity.this, MapRegionsActivity.class);
+        startActivity(intent);
+    }
+
+    private void showConfig(){
+        Intent intent = new Intent(HomeActivity.this, ConfigActivity.class);
         startActivity(intent);
     }
 }

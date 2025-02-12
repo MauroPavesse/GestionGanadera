@@ -4,19 +4,19 @@ import java.util.List;
 
 public class Region {
     private String id;
-    private String usuarioId;
+    private String userId;
     private List<LatLngPoint> points;
-    private String nombre;
+    private String name;
     private int color;
 
     public Region() {
     }
 
-    public Region(String id, String usuarioId, List<LatLngPoint> points, String nombre, int color) {
+    public Region(String id, String userId, List<LatLngPoint> points, String name, int color) {
         this.id = id;
-        this.usuarioId = usuarioId;
+        this.userId = userId;
         this.points = points;
-        this.nombre = nombre;
+        this.name = name;
         this.color = color;
     }
 
@@ -29,9 +29,9 @@ public class Region {
         this.id = id;
     }
 
-    public String getUsuarioId() { return usuarioId; }
+    public String getUserId() { return userId; }
 
-    public void setUsuarioId(String usuarioId) { this.usuarioId = usuarioId; }
+    public void setUserId(String userId) { this.userId = userId; }
 
     public List<LatLngPoint> getPoints() {
         return points;
@@ -41,12 +41,12 @@ public class Region {
         this.points = points;
     }
 
-    public String getNombre() {
-        return nombre;
+    public String getName() {
+        return name;
     }
 
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public int getColor() {
