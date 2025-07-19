@@ -1,17 +1,23 @@
 package com.pequesystems.gestionganadera.ui;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.firebase.auth.AuthCredential;
@@ -27,12 +33,14 @@ import java.util.List;
 
 public class ConfigActivity extends AppCompatActivity {
 
-    private Button btnSave, btnDeleteAccount;
+    private Button btnSave, btnDeleteAccount, btnRequestLocation, btnViewUserManual;
     private EditText editTextNewPassword;
-    private ImageButton imagenButtonTogglePassword;
+    private ImageButton imagenButtonTogglePassword, config_button_back;
     private FirebaseAuth mAuth;
     private FirebaseUser user;
     private FirebaseFirestore db;
+    private static final int LOCATION_PERMISSION_CODE = 1001;
+    private TextView locationStatus;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +51,14 @@ public class ConfigActivity extends AppCompatActivity {
         btnDeleteAccount = findViewById(R.id.config_button_deleteAccount);
         editTextNewPassword = findViewById(R.id.config_editText_password);
         imagenButtonTogglePassword = findViewById(R.id.config_imagenButton_togglePassword);
+        locationStatus = findViewById(R.id.config_textView_locationStatus);
+        btnRequestLocation = findViewById(R.id.config_button_requestLocation);
+        btnViewUserManual = findViewById(R.id.config_button_userManual);
+        config_button_back = findViewById(R.id.config_imageButton_back);
+
+        config_button_back.setOnClickListener(v -> {
+            finish();
+        });
 
         mAuth = FirebaseAuth.getInstance();
         user = mAuth.getCurrentUser();
@@ -67,6 +83,19 @@ public class ConfigActivity extends AppCompatActivity {
         btnSave.setOnClickListener(v -> cambiarPassword());
 
         btnDeleteAccount.setOnClickListener(v -> eliminarCuenta());
+
+        // Actualizar estado inicial
+        updateLocationStatus();
+
+        // Botón para solicitar permiso
+        btnRequestLocation.setOnClickListener(v -> {
+            requestLocationPermission();
+        });
+
+        btnViewUserManual.setOnClickListener(v -> {
+            Intent intent = new Intent(ConfigActivity.this, PdfActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void cambiarPassword() {
@@ -194,5 +223,43 @@ public class ConfigActivity extends AppCompatActivity {
                         Toast.makeText(this, "Error al eliminar la cuenta", Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    private boolean hasLocationPermission() {
+        return ContextCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void updateLocationStatus() {
+        if (hasLocationPermission()) {
+            locationStatus.setText("Permiso de ubicación: Otorgado ✅");
+        } else {
+            locationStatus.setText("Permiso de ubicación: Denegado ❌");
+        }
+    }
+
+    private void requestLocationPermission() {
+        if (!hasLocationPermission()) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_CODE);
+        } else {
+            Toast.makeText(this, "El permiso ya está otorgado", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_CODE) {
+            updateLocationStatus();
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Permiso de ubicación otorgado", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }

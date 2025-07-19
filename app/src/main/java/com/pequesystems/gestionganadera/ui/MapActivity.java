@@ -7,8 +7,12 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Point;
 import android.os.Bundle;
+import android.os.Handler;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
@@ -22,12 +26,16 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.material.chip.Chip;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.pequesystems.gestionganadera.R;
 import com.pequesystems.gestionganadera.models.Animal;
@@ -36,7 +44,12 @@ import com.pequesystems.gestionganadera.models.LatLngPoint;
 import com.pequesystems.gestionganadera.models.Region;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class MapActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -47,14 +60,22 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     ImageButton map_button_back;
     Chip map_chip_viewRegions;
     private boolean isShowRegions = false;
+    private List<Animal> animals = new ArrayList<>();
     private List<Region> regions = new ArrayList<>();
     private List<AnimalLocation> animalLocations = new ArrayList<>();
     FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private String userId;
+    private final Handler handler = new Handler();
+    private final int REFRESH_INTERVAL_MS = 5_000; // Cada 30 segundos (ajustá como necesites)
+    private Map<String, Marker> animalMarkers = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
+
+        SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
+        userId = sharedPref.getString("user_id", "");
 
         map_mapView_map = findViewById(R.id.map_mapView_map);
         map_button_back = findViewById(R.id.map_imageButton_back);
@@ -67,12 +88,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         map_mapView_map.onCreate(savedInstanceState);
         map_mapView_map.getMapAsync(this);
 
-        SharedPreferences sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
-        String userId = sharedPref.getString("user_id", "");
-
         loadRegions(userId);
-        loadAnimalsLocations(userId);
-        showAnimals();
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -113,51 +129,19 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     }
     */
 
-    private void loadAnimalsLocations(String userId){
+    private void loadAnimals(){
         try{
             db.collection("animals")
-                    .whereEqualTo("userId", userId) // Reemplaza con el userId correspondiente
+                    .whereEqualTo("userId", "NJtqKEDxvHSdJ4K5jdwj93Le3cF3")
                     .get()
                     .addOnCompleteListener(task -> {
                         if (task.isSuccessful()) {
-                            List<Animal> animals = new ArrayList<>();
                             if (task.getResult() != null) {
                                 for (QueryDocumentSnapshot document : task.getResult()) {
                                     Animal animal = document.toObject(Animal.class);
                                     animals.add(animal);
                                 }
-                            }
-
-                            // Paso 2: Obtener las locaciones para cada animal
-                            if (animals.stream().anyMatch(obj -> obj.getDeviceId() != null && obj.getDeviceId().length() > 0)) {
-                                List<String> deviceIds = animals.stream()
-                                        .map(Animal::getDeviceId)
-                                        .filter(deviceId -> deviceId != null && !deviceId.isEmpty())
-                                        .distinct()
-                                        .collect(Collectors.toList());
-                                /*List<String> deviceIds = animals.stream()
-                                        .map(Animal::getDeviceId)
-                                        .filter(deviceId -> deviceId != null && deviceId.length() > 0)
-                                        .collect(Collectors.toList());*/
-                                db.collection("animalsLocations")
-                                        .whereIn("Id", deviceIds)
-                                        .get()
-                                        .addOnCompleteListener(locationTask -> {
-                                            if (locationTask.isSuccessful()) {
-                                                for (QueryDocumentSnapshot locationDocument : locationTask.getResult()) {
-                                                    AnimalLocation animalLocation = locationDocument.toObject(AnimalLocation.class);
-                                                    Animal animalAux = animals.stream()
-                                                            .filter(animal -> animal.getDeviceId() != null && animal.getDeviceId().equals(animalLocation.getId()))
-                                                            //.filter(deviceId -> deviceId != null && deviceId.equals(animalLocation.getId()))
-                                                            .findFirst() // Encuentra el primer elemento que coincida
-                                                            .orElse(null); // Devuelve null si no hay coincidencias
-                                                    animalLocation.setAnimal(animalAux);
-                                                    animalLocations.add(animalLocation);
-                                                }
-                                            } else {
-                                                Toast.makeText(this, "Error al cargar las ubicaciones de los animales", Toast.LENGTH_SHORT).show();
-                                            }
-                                        });
+                                loadAnimalsLocations();
                             }
                         } else {
                             Toast.makeText(this, "Error al cargar los animales", Toast.LENGTH_SHORT).show();
@@ -169,10 +153,71 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         }
     }
 
+    private void loadAnimalsLocations(){
+        try{
+            animalLocations.clear();
+            List<String> deviceIds = new ArrayList<>();
+            for (Animal animal : animals) {
+                if (animal.getDeviceId() != null && !animal.getDeviceId().isEmpty()) {
+                    deviceIds.add(animal.getDeviceId());
+                }
+            }
+
+            if (deviceIds.isEmpty()) {
+                Toast.makeText(this, "No hay dispositivos para buscar ubicaciones", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            List<List<String>> chunks = splitList(deviceIds, 10);
+
+            for (List<String> chunk : chunks) {
+                db.collection("animalsLocations")
+                        .whereIn("id", chunk)
+                        .get()
+                        .addOnCompleteListener(task -> {
+                            if (task.isSuccessful() && task.getResult() != null) {
+                                for (QueryDocumentSnapshot document : task.getResult()) {
+                                    String id = document.getString("id");
+
+                                    Map<String, Object> point = (Map<String, Object>) document.get("point");
+                                    if (point != null) {
+                                        Double latitude = (Double) point.get("latitude");
+                                        Double longitude = (Double) point.get("longitude");
+                                        LatLngPoint pointActual = new LatLngPoint(latitude, longitude);
+                                        Animal animalAux = animals.stream()
+                                                .filter(animal -> animal.getDeviceId() != null && animal.getDeviceId().equals(id))
+                                                .findFirst()
+                                                .orElse(null);
+                                        if (latitude != null && longitude != null) {
+                                            AnimalLocation location = new AnimalLocation(id, pointActual, animalAux);
+                                            animalLocations.add(location);
+                                        }
+                                    }
+                                    showAnimals();
+                                }
+                            } else {
+                                Toast.makeText(this, "Error al obtener ubicaciones", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+            }
+        }
+        catch (Exception ex){
+            Toast.makeText(this, ex.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private List<List<String>> splitList(List<String> originalList, int chunkSize) {
+        List<List<String>> chunks = new ArrayList<>();
+        for (int i = 0; i < originalList.size(); i += chunkSize) {
+            chunks.add(originalList.subList(i, Math.min(i + chunkSize, originalList.size())));
+        }
+        return chunks;
+    }
+
     private void loadRegions(String userId){
         try{
             db.collection("regions")
-                    .whereEqualTo("usuarioId", userId)
+                    .whereEqualTo("userId", userId)
                     .get()
                     .addOnCompleteListener(task -> {
                         if (task.isSuccessful()) {
@@ -190,15 +235,96 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         }
     }
 
-    private void showAnimals(){
-        if (googleMap != null) {
-            for (int i = 0; i < animalLocations.size(); i++) {
-                MarkerOptions marcador = new MarkerOptions();
-                LatLngPoint point = animalLocations.get(i).getPoint();
-                marcador.position(new LatLng(point.getLatitude(), point.getLongitude()));
-                googleMap.addMarker(marcador);
+    private void showAnimals() {
+        if (googleMap == null) return;
+
+        Set<String> currentIds = new HashSet<>();
+
+        for (AnimalLocation location : animalLocations) {
+            String animalId = location.getAnimal().getId();
+            LatLng newPos = new LatLng(location.getPoint().getLatitude(), location.getPoint().getLongitude());
+            currentIds.add(animalId);
+
+            Marker marker = animalMarkers.get(animalId);
+            if (marker == null) {
+                // 🔰 Nuevo marcador
+                String type = location.getAnimal().getType();
+                String iconName = "";
+                switch (type) {
+                    case "Vaca": iconName = "typeanimal_cow"; break;
+                    case "Caballo": iconName = "typeanimal_horse"; break;
+                    case "Oveja": iconName = "typeanimal_sheep"; break;
+                }
+
+                int iconResId = getResources().getIdentifier(iconName, "drawable", getPackageName());
+
+                MarkerOptions options = new MarkerOptions()
+                        .position(newPos)
+                        .title(location.getAnimal().getName());
+
+                if (iconResId != 0) {
+                    options.icon(getScaledBitmapDescriptor(iconResId, 64, 64));
+                }
+
+                marker = googleMap.addMarker(options);
+                animalMarkers.put(animalId, marker);
+            } else {
+                // 🔄 Solo actualizar posición si cambió
+                if (!marker.getPosition().equals(newPos)) {
+                    marker.setPosition(newPos);
+                }
             }
         }
+
+        // 🧹 Eliminar marcadores que ya no están
+        Iterator<Map.Entry<String, Marker>> iterator = animalMarkers.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, Marker> entry = iterator.next();
+            if (!currentIds.contains(entry.getKey())) {
+                entry.getValue().remove(); // elimina el marcador del mapa
+                iterator.remove();         // elimina del Map
+            }
+        }
+    }
+
+    private void showAnimals2() {
+        if (googleMap != null) {
+            googleMap.clear();
+            if (isShowRegions) {
+                for (Region region : regions) {
+                    showPolygonOnMap(region); // 🔁 Vuelve a mostrar las regiones si estaban activas
+                }
+            }
+            for (AnimalLocation location : animalLocations) {
+                LatLng point = new LatLng(location.getPoint().getLatitude(), location.getPoint().getLongitude());
+                Animal animal = location.getAnimal();
+
+                String iconName = "";
+                switch (animal.getType()) {
+                    case "Vaca": iconName = "typeanimal_cow"; break;
+                    case "Caballo": iconName = "typeanimal_horse"; break;
+                    case "Oveja": iconName = "typeanimal_sheep"; break;
+                }
+
+                int iconResId = getResources().getIdentifier(iconName, "drawable", getPackageName());
+
+                MarkerOptions markerOptions = new MarkerOptions()
+                        .position(point)
+                        .title(animal.getName());
+
+                if (iconResId != 0) {
+                    markerOptions.icon(getScaledBitmapDescriptor(iconResId, 64, 64));
+                }
+
+                googleMap.addMarker(markerOptions);
+            }
+        }
+    }
+
+    private BitmapDescriptor getScaledBitmapDescriptor(int resId, int width, int height) {
+        Bitmap original = BitmapFactory.decodeResource(getResources(), resId);
+        Bitmap scaled = Bitmap.createScaledBitmap(original, width, height, false);
+        return BitmapDescriptorFactory.fromBitmap(scaled);
     }
 
     private void showRegions(){
@@ -272,9 +398,11 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
             if (location != null) {
                 LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
                 googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 18));
-                googleMap.addMarker(new MarkerOptions().position(currentLocation).title("Mi ubicación"));
+                //googleMap.addMarker(new MarkerOptions().position(currentLocation).title("Mi ubicación"));
             }
         });
+
+        loadAnimals();
     }
 
     @Override
@@ -300,12 +428,14 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     protected void onResume() {
         super.onResume();
         map_mapView_map.onResume();
+        startLocationUpdates();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         map_mapView_map.onPause();
+        stopLocationUpdates();
     }
 
     @Override
@@ -318,5 +448,21 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     public void onLowMemory() {
         super.onLowMemory();
         map_mapView_map.onLowMemory();
+    }
+
+    private final Runnable refreshRunnable = new Runnable() {
+        @Override
+        public void run() {
+            loadAnimalsLocations();
+            handler.postDelayed(this, REFRESH_INTERVAL_MS);
+        }
+    };
+
+    private void startLocationUpdates() {
+        handler.post(refreshRunnable);
+    }
+
+    private void stopLocationUpdates() {
+        handler.removeCallbacks(refreshRunnable);
     }
 }

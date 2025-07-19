@@ -4,6 +4,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.UserRegisterActivity">
+    tools:context=".ui.PdfActivity">
+
+    <com.pdfview.PDFView
+        android:id="@+id/pdf_pdfView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
