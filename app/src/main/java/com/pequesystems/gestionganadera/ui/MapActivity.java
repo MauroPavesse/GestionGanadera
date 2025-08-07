@@ -142,6 +142,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
                                     animals.add(animal);
                                 }
                                 loadAnimalsLocations();
+                                startLocationUpdates();
                             }
                         } else {
                             Toast.makeText(this, "Error al cargar los animales", Toast.LENGTH_SHORT).show();
@@ -170,6 +171,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
 
             List<List<String>> chunks = splitList(deviceIds, 10);
 
+            int totalChunks = chunks.size();
+            int[] completedChunks = {0}; // Usamos array para poder modificar dentro del lambda
+
             for (List<String> chunk : chunks) {
                 db.collection("animalsLocations")
                         .whereIn("id", chunk)
@@ -193,10 +197,13 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
                                             animalLocations.add(location);
                                         }
                                     }
-                                    showAnimals();
                                 }
-                            } else {
-                                Toast.makeText(this, "Error al obtener ubicaciones", Toast.LENGTH_SHORT).show();
+                            }
+
+                            // ✅ Contador de chunks completados
+                            completedChunks[0]++;
+                            if (completedChunks[0] == totalChunks) {
+                                showAnimals(); // ✅ Solo mostrar una vez, cuando todos estén cargados
                             }
                         });
             }
@@ -333,6 +340,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
             for (int i = 0; i < regions.size(); i++) {
                 showPolygonOnMap(regions.get(i));
             }
+            animalMarkers.clear();
+
+            showAnimals();
+
             Toast.makeText(this, "Mostrando regiones", Toast.LENGTH_SHORT).show();
             map_chip_viewRegions.setText("Ocultar Regiones");
             map_chip_viewRegions.setChipBackgroundColor(ColorStateList.valueOf(Color.RED));
@@ -375,6 +386,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         if (googleMap != null) {
             Toast.makeText(this, "Ocultando regiones", Toast.LENGTH_SHORT).show();
             googleMap.clear();
+            animalMarkers.clear();
+
+            showAnimals();
             map_chip_viewRegions.setText("Ver Regiones");
             map_chip_viewRegions.setChipBackgroundColor(ColorStateList.valueOf(Color.GREEN));
         }
@@ -428,7 +442,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
     protected void onResume() {
         super.onResume();
         map_mapView_map.onResume();
-        startLocationUpdates();
+        //startLocationUpdates();
     }
 
     @Override
